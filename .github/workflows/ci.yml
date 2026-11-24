@@ -32,6 +32,9 @@ jobs:
       - name: Format check (Prettier)
         run: pnpm format:check
 
+      - name: Typecheck (tsc)
+        run: pnpm typecheck
+
       - name: Test backend
         run: pnpm test
 
