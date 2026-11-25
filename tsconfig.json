@@ -1,0 +1,27 @@
+{
+  // Backend chạy .ts trực tiếp bằng Node 24 (type stripping), tsc chỉ dùng để kiểm tra kiểu.
+  "compilerOptions": {
+    "target": "es2024",
+    "lib": ["ES2024"],
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "types": ["node"],
+    "noEmit": true,
+    "skipLibCheck": true,
+
+    /* Node type stripping chỉ xoá được cú pháp kiểu thuần (không enum, namespace, parameter properties) */
+    "erasableSyntaxOnly": true,
+    "verbatimModuleSyntax": true,
+    "allowImportingTsExtensions": true,
+    "resolveJsonModule": true,
+
+    /* Type checking */
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true
+  },
+  "include": ["**/*.ts"],
+  "exclude": ["node_modules"]
+}

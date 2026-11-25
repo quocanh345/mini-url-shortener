@@ -32,8 +32,8 @@ jobs:
       - name: Format check (Prettier)
         run: pnpm format:check
 
-      - name: Test backend
-        run: pnpm test
+      - name: Typecheck (tsc)
+        run: pnpm typecheck
 
-      - name: Build frontend
-        run: pnpm build
+      - name: Test (Vitest + Supertest)
+        run: pnpm test

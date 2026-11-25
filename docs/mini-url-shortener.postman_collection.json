@@ -1,0 +1,484 @@
+{
+  "info": {
+    "name": "Mini URL Shortener",
+    "description": "Kịch bản kiểm thử theo README mục 5. Chạy theo thứ tự đánh số.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000"
+    },
+    {
+      "key": "apiKey",
+      "value": "my-secret-api-key"
+    }
+  ],
+  "item": [
+    {
+      "name": "Redirect (công khai)",
+      "item": [
+        {
+          "name": "01 GET /s/node01 → 302",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/s/node01",
+              "host": ["{{baseUrl}}"],
+              "path": ["s", "node01"]
+            }
+          }
+        },
+        {
+          "name": "02 GET /s/off123 (bị tắt) → 410",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/s/off123",
+              "host": ["{{baseUrl}}"],
+              "path": ["s", "off123"]
+            }
+          }
+        },
+        {
+          "name": "03 GET /s/old999 (hết hạn) → 410",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/s/old999",
+              "host": ["{{baseUrl}}"],
+              "path": ["s", "old999"]
+            }
+          }
+        },
+        {
+          "name": "04 GET /s/khongco → 404",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/s/khongco",
+              "host": ["{{baseUrl}}"],
+              "path": ["s", "khongco"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Links",
+      "item": [
+        {
+          "name": "05 GET /api/links không có API key → 401",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/links",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "links"]
+            }
+          }
+        },
+        {
+          "name": "06 GET /api/links → 200",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/links",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "links"]
+            }
+          }
+        },
+        {
+          "name": "07 POST /api/links customCode → 201",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{apiKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"originalUrl\": \"https://vnexpress.net\",\n  \"customCode\": \"vnex01\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/links",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "links"]
+            }
+          }
+        },
+        {
+          "name": "08 POST /api/links trùng mã → 409",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{apiKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"originalUrl\": \"https://vnexpress.net\",\n  \"customCode\": \"vnex01\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/links",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "links"]
+            }
+          }
+        },
+        {
+          "name": "09 POST /api/links URL sai → 400",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{apiKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"originalUrl\": \"vnexpress.net\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/links",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "links"]
+            }
+          }
+        },
+        {
+          "name": "10 POST /api/links customCode ký tự đặc biệt → 400",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{apiKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"originalUrl\": \"https://a.com\",\n  \"customCode\": \"ab@#\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/links",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "links"]
+            }
+          }
+        },
+        {
+          "name": "11 POST /api/links mã ngẫu nhiên → 201",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{apiKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"originalUrl\": \"https://dantri.com.vn\",\n  \"expirationDate\": \"2027-12-31T23:59:59Z\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/links",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "links"]
+            }
+          }
+        },
+        {
+          "name": "12 GET /api/links/vnex01 → 200",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/links/vnex01",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "links", "vnex01"]
+            }
+          }
+        },
+        {
+          "name": "13 PUT /api/links/vnex01 tắt link → 200",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{apiKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"active\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/links/vnex01",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "links", "vnex01"]
+            }
+          }
+        },
+        {
+          "name": "13b GET /s/vnex01 sau khi tắt → 410",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/s/vnex01",
+              "host": ["{{baseUrl}}"],
+              "path": ["s", "vnex01"]
+            }
+          }
+        },
+        {
+          "name": "14 PUT /api/links/old999 bỏ thời hạn → 200",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{apiKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"expirationDate\": null\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/links/old999",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "links", "old999"]
+            }
+          }
+        },
+        {
+          "name": "14b GET /s/old999 sau khi bỏ thời hạn → 302",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/s/old999",
+              "host": ["{{baseUrl}}"],
+              "path": ["s", "old999"]
+            }
+          }
+        },
+        {
+          "name": "15 DELETE /api/links/vnex01 → 200",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/links/vnex01",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "links", "vnex01"]
+            }
+          }
+        },
+        {
+          "name": "15b GET /api/links/vnex01 sau khi xoá → 404",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/links/vnex01",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "links", "vnex01"]
+            }
+          }
+        },
+        {
+          "name": "16 POST /api/links gửi > 5 lần/phút → 429",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{apiKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"originalUrl\": \"https://example.com\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/links",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "links"]
+            },
+            "description": "Bấm Send liên tục: từ lần thứ 6 trong cùng 1 phút sẽ trả 429."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Analytics",
+      "item": [
+        {
+          "name": "17 GET /api/analytics?top=3 → 200",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/analytics?top=3",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "analytics"],
+              "query": [
+                {
+                  "key": "top",
+                  "value": "3"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "18 GET /api/analytics/logs → 200",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/analytics/logs",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "analytics", "logs"]
+            }
+          }
+        },
+        {
+          "name": "19 POST /api/analytics/backup → 201",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/analytics/backup",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "analytics", "backup"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

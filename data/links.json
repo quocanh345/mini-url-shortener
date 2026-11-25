@@ -1,0 +1,52 @@
+{
+  "data": [
+    {
+      "code": "node01",
+      "originalUrl": "https://nodejs.org/en/learn/getting-started/introduction-to-nodejs",
+      "active": true,
+      "clicks": 42,
+      "createdAt": "2026-11-01T08:00:00.000Z",
+      "expirationDate": null
+    },
+    {
+      "code": "expr05",
+      "originalUrl": "https://expressjs.com/en/guide/routing.html",
+      "active": true,
+      "clicks": 27,
+      "createdAt": "2026-11-05T09:30:00.000Z",
+      "expirationDate": "2027-12-31T23:59:59.000Z"
+    },
+    {
+      "code": "mdnJS1",
+      "originalUrl": "https://developer.mozilla.org/en-US/docs/Web/JavaScript",
+      "active": true,
+      "clicks": 15,
+      "createdAt": "2026-11-10T14:15:00.000Z",
+      "expirationDate": null
+    },
+    {
+      "code": "gitHub",
+      "originalUrl": "https://github.com/expressjs/express",
+      "active": true,
+      "clicks": 8,
+      "createdAt": "2026-11-12T10:00:00.000Z",
+      "expirationDate": null
+    },
+    {
+      "code": "off123",
+      "originalUrl": "https://www.typescriptlang.org/docs/",
+      "active": false,
+      "clicks": 3,
+      "createdAt": "2026-11-15T16:45:00.000Z",
+      "expirationDate": null
+    },
+    {
+      "code": "old999",
+      "originalUrl": "https://www.postman.com/",
+      "active": true,
+      "clicks": 11,
+      "createdAt": "2026-10-01T07:00:00.000Z",
+      "expirationDate": "2026-11-01T00:00:00.000Z"
+    }
+  ]
+}
