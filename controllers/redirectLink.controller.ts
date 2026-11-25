@@ -1,36 +1,21 @@
 import type { Request, Response } from 'express';
 import { linkService } from '../services/link.services.ts';
-import {
-  LinkExpiredError,
-  LinkInactiveError,
-  LinkNotFoundError,
-} from '../errorHandler/link.error.ts';
 
-async function redirectLink(req: Request, res: Response): Promise<Response | void> {
+// GET /s/:code (công khai)
+// registerClick: tìm link (404), kiểm tra bị tắt / hết hạn (410), tăng clicks và lưu vào data/links.json
+export default async function redirectLink(
+  req: Request<{ code: string }>,
+  res: Response,
+): Promise<void> {
   const { code } = req.params;
+  const link = await linkService.registerClick(code);
 
-  if (typeof code !== 'string' || !code) {
-    return res.status(400).json({ message: 'Invalid code' });
-  }
-
+  // Ghi log lỗi không được chặn người dùng vào link, nên chỉ in lỗi ra console
   try {
-    const link = await linkService.getLinkByCode(code);
-    linkService.assertLinkAccessible(link!); // chắc chắn không bị undefind do đã kiểm tra trong getLinkByCode
-    await linkService.updateLink(code, { clicks: link!.clicks + 1 }); // không lấy giá trị trả về vì không cần thiết
-    // cần thêm Ghi lịch sử truy cập (thời gian, mã link, req.headers['user-agent']) vào logs/clicks.log.
-    return res.redirect(link!.originalUrl);
+    await linkService.logClick(code, req.get('user-agent'));
   } catch (error) {
-    if (error instanceof LinkNotFoundError) {
-      return res.status(404).json({ message: error.message });
-    }
-    if (error instanceof LinkInactiveError) {
-      return res.status(400).json({ message: error.message });
-    }
-    if (error instanceof LinkExpiredError) {
-      return res.status(400).json({ message: error.message });
-    }
-    return res.status(500).json({ message: 'Internal server error' });
+    console.error('Cannot write click log:', error);
   }
-}
 
-export default redirectLink;
+  res.redirect(link.originalUrl);
+}

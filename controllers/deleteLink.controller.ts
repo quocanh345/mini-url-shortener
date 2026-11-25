@@ -1,24 +1,11 @@
-import { linkService } from '../services/link.services.ts';
-import { LinkNotFoundError } from '../errorHandler/link.error.ts';
 import type { Request, Response } from 'express';
+import { linkService } from '../services/link.services.ts';
 
-async function deleteLink(req: Request, res: Response): Promise<Response> {
-  const { code } = req.params;
-
-  if (typeof code !== 'string' || !code) {
-    return res.status(400).json({ message: 'Invalid code' });
-  }
-
-  try {
-    const deletedLink = await linkService.deleteLink(code);
-    return res.status(200).json({ message: 'Link deleted successfully.', deletedLink });
-  } catch (error) {
-    if (error instanceof LinkNotFoundError) {
-      return res.status(404).json({ message: 'Link not found.' });
-    }
-    console.error('Error in deleteLink controller:', error);
-    return res.status(500).json({ message: 'Internal server error.' });
-  }
+// DELETE /api/links/:code
+export default async function deleteLink(
+  req: Request<{ code: string }>,
+  res: Response,
+): Promise<void> {
+  const deleted = await linkService.deleteLink(req.params.code);
+  res.json({ message: 'Link deleted successfully.', data: deleted });
 }
-
-export default deleteLink;
