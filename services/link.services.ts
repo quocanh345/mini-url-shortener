@@ -1,139 +1,141 @@
-import { generateRandomCode, readDataFromFile, writeDataToFile } from '../utils/fileHelper.ts';
-import type { Database } from '../data/database.ts';
+import { clickLogFile, config } from '../config.ts';
 import {
-  LinkNotFoundError,
-  LinkExsistsError,
-  LinkCannotGenerateError,
-  FailedToUpdateLinkError,
-  FailedToDeleteLinkError,
+  CodeGenerationError,
+  LinkExistsError,
   LinkExpiredError,
   LinkInactiveError,
-} from '../errorHandler/link.error.ts';
-import path from 'node:path';
+  LinkNotFoundError,
+} from '../errors/app.error.ts';
+import type {
+  ClickLogEntry,
+  CreateLinkInput,
+  Link,
+  LinksFile,
+  UpdateLinkInput,
+} from '../types/link.ts';
+import { generateRandomCode } from '../utils/codeGenerator.ts';
+import { appendLine, readJson, withFileLock, writeJson } from '../utils/fileHelper.ts';
 
-const PATH = path.join(import.meta.dirname, '../data/links.json');
+const MAX_GENERATE_ATTEMPTS = 5;
 
-// kiểm tra xem có mã trùng lặp hay không
-async function isUniqueCode(code: string, existingData: Database[]): Promise<boolean> {
-  return !existingData.find((link: Database) => link.code === code);
+async function readLinks(): Promise<Link[]> {
+  const file = await readJson<LinksFile>(config.dataFile);
+  return file.data;
 }
 
-// sinh mã ngẫu nhiên và kiểm tra tính duy nhất
-async function generateUniqueCode(existingData: Database[]): Promise<string | null> {
-  let code: string;
-  for (let attempts = 0; attempts < 5; attempts++) {
-    code = generateRandomCode(6);
-    const isUnique = await isUniqueCode(code, existingData);
-    if (isUnique) {
-      return code;
-    }
-  }
-  return null;
+async function saveLinks(links: Link[]): Promise<void> {
+  await writeJson(config.dataFile, { data: links } satisfies LinksFile);
 }
 
-class LinkService {
-  async createLink(
-    originalUrl: string,
-    customCode?: string,
-    expirationDate?: string,
-  ): Promise<Database | undefined> {
-    const existingData = await readDataFromFile<{ data: Database[] }>(PATH);
-    let code: string | null;
-    if (customCode) {
-      const isCustomCodeUnique = await isUniqueCode(customCode, existingData.data);
-      if (!isCustomCodeUnique) {
-        throw new LinkExsistsError();
-      }
-      code = customCode;
-    } else code = await generateUniqueCode(existingData.data);
+// Đọc → sửa → ghi trong cùng một "khoá" để các request ghi không đè lên nhau
+function mutateLinks<T>(task: (links: Link[]) => T | Promise<T>): Promise<T> {
+  return withFileLock(config.dataFile, async () => {
+    const links = await readLinks();
+    const result = await task(links);
+    await saveLinks(links);
+    return result;
+  });
+}
 
-    if (!code) {
-      throw new LinkCannotGenerateError();
-    }
+function findIndexOrThrow(links: Link[], code: string): number {
+  const index = links.findIndex((link) => link.code === code);
+  if (index === -1) throw new LinkNotFoundError(code);
+  return index;
+}
 
-    const newLink = {
-      originalUrl,
-      code: code!,
-      active: true,
-      clicks: 0,
-      expirationDate: expirationDate || undefined,
-    };
-    await writeDataToFile(PATH, { data: [...existingData.data, newLink] });
-    return newLink;
+function isCodeTaken(links: Link[], code: string): boolean {
+  return links.some((link) => link.code === code);
+}
+
+function generateUniqueCode(links: Link[]): string {
+  for (let attempt = 0; attempt < MAX_GENERATE_ATTEMPTS; attempt++) {
+    const code = generateRandomCode(config.codeLength);
+    if (!isCodeTaken(links, code)) return code;
   }
+  throw new CodeGenerationError();
+}
 
-  async getAllLinks(): Promise<Database[] | undefined> {
-    const existingData = await readDataFromFile<{ data: Database[] }>(PATH);
-    const allLink = existingData.data;
-    if (!allLink) {
-      throw new LinkNotFoundError();
-    }
-    return allLink;
-  }
+export function isExpired(link: Link, now = new Date()): boolean {
+  return link.expirationDate ? new Date(link.expirationDate) <= now : false;
+}
 
-  async getLinkByCode(code: string): Promise<Database | undefined> {
-    const existingData = await readDataFromFile<{ data: Database[] }>(PATH);
-    const link = existingData.data.find((link: Database) => link.code === code);
-    if (!link) {
-      throw new LinkNotFoundError();
-    }
+// Link bị tắt hoặc đã hết hạn thì không được chuyển hướng (410 Gone)
+function assertLinkAccessible(link: Link): void {
+  if (!link.active) throw new LinkInactiveError(link.code);
+  if (isExpired(link)) throw new LinkExpiredError(link.code);
+}
+
+export const linkService = {
+  getAllLinks(): Promise<Link[]> {
+    return readLinks();
+  },
+
+  async getLinkByCode(code: string): Promise<Link> {
+    const links = await readLinks();
+    const link = links.find((item) => item.code === code);
+    if (!link) throw new LinkNotFoundError(code);
     return link;
-  }
+  },
 
-  async updateLink(code: string, updates: Partial<Database>): Promise<Database | undefined> {
-    const existingData = await readDataFromFile<{ data: Database[] }>(PATH);
-    const linkIndex = existingData.data.findIndex((link: Database) => link.code === code);
-    if (linkIndex === -1 || !existingData.data[linkIndex]) {
-      throw new LinkNotFoundError();
-    }
-    existingData.data[linkIndex] = { ...existingData.data[linkIndex], ...updates };
-    await writeDataToFile(PATH, existingData);
-    const updatedLink = existingData.data[linkIndex];
-    if (!updatedLink) {
-      throw new FailedToUpdateLinkError();
-    }
-    return updatedLink;
-  }
-
-  async deleteLink(code: string): Promise<Database | undefined> {
-    const existingData = await readDataFromFile<{ data: Database[] }>(PATH);
-    const linkIndex = existingData.data.findIndex((link: Database) => link.code === code);
-
-    if (linkIndex === -1) {
-      throw new LinkNotFoundError();
-    }
-
-    const [deletedLink] = existingData.data.splice(linkIndex, 1);
-    await writeDataToFile(PATH, existingData);
-    if (!deletedLink) {
-      throw new FailedToDeleteLinkError();
-    }
-    return deletedLink;
-  }
-
-  assertLinkAccessible(link: Database): void {
-    if (!link.active) {
-      throw new LinkInactiveError();
-    }
-    if (link.expirationDate) {
-      const expirationDate = new Date(link.expirationDate);
-      if (expirationDate < new Date()) {
-        throw new LinkExpiredError();
+  createLink(input: CreateLinkInput): Promise<Link> {
+    return mutateLinks((links) => {
+      let code: string;
+      if (input.customCode) {
+        if (isCodeTaken(links, input.customCode)) throw new LinkExistsError(input.customCode);
+        code = input.customCode;
+      } else {
+        code = generateUniqueCode(links);
       }
-    }
-  }
 
-  async incrementClicks(code: string): Promise<string> {
-    const existingData = await readDataFromFile<{ data: Database[] }>(PATH);
-    const linkIndex = existingData.data.findIndex((link: Database) => link.code === code);
-    if (linkIndex === -1 || !existingData.data[linkIndex]) {
-      throw new LinkNotFoundError();
-    }
-    existingData.data[linkIndex].clicks += 1;
-    await writeDataToFile(PATH, existingData);
-    const updatedLink = existingData.data[linkIndex];
-    return updatedLink.originalUrl;
-  }
-  // chưa áp dụng vì nếu việc update gặp lỗi sẽ kéo theo người dùng không thể truy cập link.
-}
-export const linkService = new LinkService();
+      const newLink: Link = {
+        code,
+        originalUrl: input.originalUrl,
+        active: true,
+        clicks: 0,
+        createdAt: new Date().toISOString(),
+        expirationDate: input.expirationDate ?? null,
+      };
+      links.push(newLink);
+      return newLink;
+    });
+  },
+
+  // Chỉ cập nhật originalUrl, expirationDate, active (đã được middleware lọc sẵn)
+  updateLink(code: string, updates: UpdateLinkInput): Promise<Link> {
+    return mutateLinks((links) => {
+      const index = findIndexOrThrow(links, code);
+      const updated: Link = { ...links[index]!, ...updates };
+      links[index] = updated;
+      return updated;
+    });
+  },
+
+  deleteLink(code: string): Promise<Link> {
+    return mutateLinks((links) => {
+      const index = findIndexOrThrow(links, code);
+      const [deleted] = links.splice(index, 1);
+      return deleted!;
+    });
+  },
+
+  // Dùng cho GET /s/:code: kiểm tra link, tăng clicks và lưu lại, trả về link sau khi cập nhật
+  registerClick(code: string): Promise<Link> {
+    return mutateLinks((links) => {
+      const index = findIndexOrThrow(links, code);
+      const link = links[index]!;
+      assertLinkAccessible(link);
+      link.clicks += 1;
+      return link;
+    });
+  },
+
+  // Ghi lịch sử truy cập vào logs/clicks.log, mỗi dòng là một JSON
+  async logClick(code: string, userAgent: string | undefined): Promise<void> {
+    const entry: ClickLogEntry = {
+      time: new Date().toISOString(),
+      code,
+      userAgent: userAgent ?? 'unknown',
+    };
+    await appendLine(clickLogFile(), JSON.stringify(entry));
+  },
+};
