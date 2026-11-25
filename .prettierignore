@@ -1,6 +1,5 @@
 pnpm-lock.yaml
-**/dist
-**/coverage
-backend/logs
-backend/backups
+coverage
+logs
+backups
 SPECIFICATION.md

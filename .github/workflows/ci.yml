@@ -35,8 +35,5 @@ jobs:
       - name: Typecheck (tsc)
         run: pnpm typecheck
 
-      - name: Test backend
+      - name: Test (Vitest + Supertest)
         run: pnpm test
-
-      - name: Build frontend
-        run: pnpm build
